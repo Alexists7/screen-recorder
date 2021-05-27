@@ -56,6 +56,7 @@ async function selectSource(source) {
 
   //Register Event Handlers
   mediaRecorder.ondataavailable = handleDataAvailable;
+  mediaRecorder.start();
   mediaRecorder.onstop = handleStop;
 }
 
