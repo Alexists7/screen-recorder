@@ -1,14 +1,31 @@
+const { desktopCapturer, remote } = require("electron");
+const { writeFile } = require("fs");
+const { Menu, dialog } = remote;
+
+//Global state
+let mediaRecorder; //MediaRecorder instance to capture footage
+const recordedChunks = [];
+
 //Buttons
 const videoElement = document.querySelector("video");
+
 const startBtn = document.getElementById("startBtn");
+startBtn.onclick = (e) => {
+  mediaRecorder.start();
+  startBtn.classList.add("is-danger");
+  startBtn.innerText = "Recording";
+};
+
 const stopBtn = document.getElementById("stopBtn");
+
+stopBtn.onclick = (e) => {
+  mediaRecorder.stop();
+  startBtn.classList.remove("is-danger");
+  startBtn.innerText = "Start";
+};
+
 const videoSelectBtn = document.getElementById("videoSelectBtn");
 videoSelectBtn.onclick = getVideoSources;
-startBtn.onclick = selectSource;
-stopBtn.onclick = handleStop;
-
-const { desktopCapturer, remote } = require("electron");
-const { Menu } = remote;
 
 //Get the available video sources
 async function getVideoSources() {
@@ -28,11 +45,11 @@ async function getVideoSources() {
   videoOptionsMenu.popup();
 }
 
-let mediaRecorder; //MediaRecorder instance to capture footage
-const recorderChunks = [];
+//Change the videoSource window to record
 
 async function selectSource(source) {
   videoSelectBtn.innerText = source.name;
+
   const constraints = {
     audio: false,
     video: {
@@ -56,22 +73,20 @@ async function selectSource(source) {
 
   //Register Event Handlers
   mediaRecorder.ondataavailable = handleDataAvailable;
-  mediaRecorder.start();
   mediaRecorder.onstop = handleStop;
+
+  //Updates the UI
 }
 
 //Captures all recorder chunks
 function handleDataAvailable(e) {
   console.log("video data available");
-  recorderChunks.push(e.data);
+  recordedChunks.push(e.data);
 }
-
-const { dialog } = remote;
-const { writeFile } = require("fs");
 
 //Saves the video file on stop
 async function handleStop(e) {
-  const blob = new Blob(recorderChunks, {
+  const blob = new Blob(recordedChunks, {
     type: "video/webm; codecs=vp9",
   });
 
@@ -82,7 +97,7 @@ async function handleStop(e) {
     defaultPath: `vid-${Date.now()}.webm`,
   });
 
-  console.log(filePath);
-
-  writeFile(filePath, buffer, () => console.log("video saved successfully!"));
+  if (filePath) {
+    writeFile(filePath, buffer, () => console.log("video saved successfully!"));
+  }
 }
